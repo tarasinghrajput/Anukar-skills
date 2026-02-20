@@ -278,11 +278,11 @@ Characters: X / 280
 ## Workflow
 
 1. **Receive Task** from Anukar-Core
-2. **LOG TO DASHBOARD** (MANDATORY - before doing anything else)
+2. **UPDATE DASHBOARD - ACTIVE AGENTS** (MANDATORY - before doing anything else)
    ```bash
    cd /home/aptest/.openclaw/workspace/Anukar-Dashboard/backend
-   node activityLogger.js start "[Task Title]" "[Description]"
-   # Save the taskId returned
+   node agentCli.js start comms "[Task Title]" "[Description]"
+   # Save the taskId from the output
    ```
 3. **Clarify Requirements** (if needed)
    - Purpose/Goal?
@@ -305,17 +305,18 @@ Characters: X / 280
 6. **UPDATE DASHBOARD PROGRESS** (MANDATORY)
    ```bash
    cd /home/aptest/.openclaw/workspace/Anukar-Dashboard/backend
-   node activityLogger.js progress "[TASK_ID]" "Reviewing draft"
+   node agentCli.js progress comms "[TASK_ID]" "Reviewing draft"
    ```
 7. **Report to Core**
    - Present draft
    - Note any assumptions
    - Ask for feedback if needed
    - Save to file if documentation
-8. **COMPLETE DASHBOARD TASK** (MANDATORY)
+8. **COMPLETE DASHBOARD TASK & UPDATE AGENT STATUS** (MANDATORY)
    ```bash
    cd /home/aptest/.openclaw/workspace/Anukar-Dashboard/backend
-   node activityLogger.js complete "[TASK_ID]" "[Brief result summary]"
+   node agentCli.js complete comms "[TASK_ID]" "[Task Title]" "[Brief result summary]"
+   # This marks task complete AND sets agent back to idle
    ```
 
 ## Platform-Specific Guidelines

@@ -202,11 +202,11 @@ Monitor and maintain GitHub repositories, CI/CD pipelines, and infrastructure he
 ## Workflow
 
 1. **Receive Task** from Anukar-Core
-2. **LOG TO DASHBOARD** (MANDATORY - before doing anything else)
+2. **UPDATE DASHBOARD - ACTIVE AGENTS** (MANDATORY - before doing anything else)
    ```bash
    cd /home/aptest/.openclaw/workspace/Anukar-Dashboard/backend
-   node activityLogger.js start "[Task Title]" "[Description]"
-   # Save the taskId returned
+   node agentCli.js start devops "[Task Title]" "[Description]"
+   # Save the taskId from the output
    ```
 3. **Identify Scope**
    - Single repo or multiple?
@@ -224,16 +224,17 @@ Monitor and maintain GitHub repositories, CI/CD pipelines, and infrastructure he
 5. **UPDATE DASHBOARD PROGRESS** (MANDATORY)
    ```bash
    cd /home/aptest/.openclaw/workspace/Anukar-Dashboard/backend
-   node activityLogger.js progress "[TASK_ID]" "Generating report"
+   node agentCli.js progress devops "[TASK_ID]" "Generating report"
    ```
 6. **Report to Core**
    - Concise summary
    - Critical alerts first
    - Save detailed report to file
-7. **COMPLETE DASHBOARD TASK** (MANDATORY)
+7. **COMPLETE DASHBOARD TASK & UPDATE AGENT STATUS** (MANDATORY)
    ```bash
    cd /home/aptest/.openclaw/workspace/Anukar-Dashboard/backend
-   node activityLogger.js complete "[TASK_ID]" "[Brief result summary]"
+   node agentCli.js complete devops "[TASK_ID]" "[Task Title]" "[Brief result summary]"
+   # This marks task complete AND sets agent back to idle
    ```
 
 ## Common Commands

@@ -136,11 +136,11 @@ Gather intel, research topics, find information, and provide structured insights
 ## Workflow
 
 1. **Receive Task** from Anukar-Core
-2. **LOG TO DASHBOARD** (MANDATORY - before doing anything else)
+2. **UPDATE DASHBOARD - ACTIVE AGENTS** (MANDATORY - before doing anything else)
    ```bash
    cd /home/aptest/.openclaw/workspace/Anukar-Dashboard/backend
-   node activityLogger.js start "[Task Title]" "[Description]"
-   # Save the taskId returned
+   node agentCli.js start researcher "[Task Title]" "[Description]"
+   # Save the taskId from the output
    ```
 3. **Clarify Scope** (if needed)
    - What specific aspects to focus on?
@@ -158,16 +158,17 @@ Gather intel, research topics, find information, and provide structured insights
 5. **UPDATE DASHBOARD PROGRESS** (MANDATORY)
    ```bash
    cd /home/aptest/.openclaw/workspace/Anukar-Dashboard/backend
-   node activityLogger.js progress "[TASK_ID]" "Synthesizing findings"
+   node agentCli.js progress researcher "[TASK_ID]" "Synthesizing findings"
    ```
 6. **Report to Core**
    - Structured markdown report
    - Save to `/research/[topic]-[date].md`
    - Summary for user-facing message
-7. **COMPLETE DASHBOARD TASK** (MANDATORY)
+7. **COMPLETE DASHBOARD TASK & UPDATE AGENT STATUS** (MANDATORY)
    ```bash
    cd /home/aptest/.openclaw/workspace/Anukar-Dashboard/backend
-   node activityLogger.js complete "[TASK_ID]" "[Brief result summary]"
+   node agentCli.js complete researcher "[TASK_ID]" "[Task Title]" "[Brief result summary]"
+   # This marks task complete AND sets agent back to idle
    ```
 
 ## Behavior Guidelines
