@@ -28,6 +28,19 @@ Ask the user for (if not provided):
 - **Reproduction Steps**: (Bugs only) How to reproduce
 - **Expected Outcome**: What should happen
 - **Priority**: P0 (Critical) / P1 (High) / P2 (Medium) / P3 (Low)
+- **Demo Video** (FEATURES only): Video file path or URL (for proposal submission)
+
+**Helper Text for Demo Video Upload:**
+```
+Video Requirements:
+- Single file only (MP4, WebM, MOV)
+- Maximum file size: 100MB
+- Duration: 1-3 minutes recommended
+- Content: Brief demo or screen recording
+- Audio: Clear voiceover preferred
+
+Upload Guidelines: https://docs.google.com/document/d/16bjTqV_s-uX1a83IbOy2nY6W9PSaIuhZJu6gqa-ZLXE/edit?tab=t.0#heading=h.jzzon6sunhi
+```
 
 ### 3. Create GitHub Issue
 
@@ -88,13 +101,14 @@ Capture the issue URL from output for the sheet.
 | B | Description | Issue title |
 | C | Reporter | `Tara Singh Kharwad` |
 | D | Date Submitted | `DD/MM/YYYY` (issue creation date) |
-| E | Status | `New` |
+| E | Status | `New` / `Proposal Sent` / `Under Review` / `Completed` |
 | F | Task type | `Issue` (bug) / `Feature` (enhancement) / `Testing` |
 | G | Priority | `Critical` (P0) / `High` (P1) / `Medium` (P2) / `Low` (P3) |
 | H | Assigned To | `tarasinghrajput7261@gmail.com` |
-| I | Resolution Notes | GitHub issue URL |
-| J | Resolution Date | (empty until closed) |
-| K | Took Help from Roshan | (leave empty - Tara fills manually) |
+| I | Demo Video URL | Video file path or URL (for proposal submission) |
+| J | Resolution Notes | GitHub issue URL |
+| K | Resolution Date | (empty until closed) |
+| L | Took Help from Roshan | (leave empty - Tara fills manually) |
 
 #### Label to Sheet Mapping
 
@@ -123,7 +137,7 @@ gog sheets append 1O07SzGzQa2FwpkBE7h2SUDWZlxsUpz8DxCpyxKjRi8U "Production!A:K" 
 #### Append to Sheet (FEATURE)
 ```bash
 gog sheets append 1O07SzGzQa2FwpkBE7h2SUDWZlxsUpz8DxCpyxKjRi8U "Production!A:K" \
-  --values-json '[["PMS-TSK-XXX","<title>","Tara Singh Kharwad","DD/MM/YYYY","New","Feature","Low","tarasinghrajput7261@gmail.com","<github_url>","",""]]' \
+  --values-json '[["PMS-TSK-XXX","<title>","Tara Singh Kharwad","DD/MM/YYYY","New","Feature","Low","tarasinghrajput7261@gmail.com","<github_url>","<demo_video_url>",""]]' \
   --insert INSERT_ROWS
 ```
 
@@ -140,6 +154,7 @@ Each day's tasks are in a single cell with headings and bullet points:
 ```
 - PMS - Fixed login button issue - https://github.com/...
 - PMS - Added export feature - https://github.com/...
+- PMS - Feature request - Demo video uploaded: https://drive.google.com/...
 ```
 
 #### Get Today's Row
@@ -179,14 +194,14 @@ Response:
 6. Update Team Daily Update sheet with new entry
 
 ### Feature Example
-User: "PMS Feature addition - Add dark mode support"
+User: "PMS Feature addition - Add demo video upload for proposal submission"
 
 Response:
 1. Detect: **FEATURE** → GitHub label: `enhancement`, Sheet type: `Feature`
-2. Ask for details (description, expected behavior, use case, priority)
+2. Ask for details (description, expected behavior, use case, priority, **demo video file/URL**)
 3. Create GitHub issue with feature template → get URL
 4. Get next Task ID from sheet
-5. Append to PMS Task Tracker with Task type = "Feature"
+5. Append to PMS Task Tracker with Task type = "Feature", **demo video URL in column I**
 6. Update Team Daily Update sheet with new entry
 
 ## Quick Reference
@@ -204,3 +219,5 @@ Response:
 - "Took Help from Roshan" is left empty (Tara fills manually)
 - Date format: DD/MM/YYYY only
 - Status starts as "New"
+- **NEW for FEATURES:** Demo video URL in column I (use Google Drive link or local path)
+- Helper text for demo video guidelines provided to user when adding features with video
