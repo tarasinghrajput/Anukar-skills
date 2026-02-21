@@ -19,7 +19,7 @@ metadata:
       - git
       - browser
     timeout: 600 # 10 minutes
-    model: glm-4.7  # Fast model for CLI operations
+    model: glm-5  # Switched to GLM-5 per user request for ALIS dev
 ---
 
 # DevOps Agent
