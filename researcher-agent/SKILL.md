@@ -19,7 +19,7 @@ metadata:
       - browser
       - image
     timeout: 1800 # 30 minutes
-    model: default
+    model: glm-5  # Heavy reasoning for research
 ---
 
 # Researcher Agent

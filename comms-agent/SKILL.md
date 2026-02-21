@@ -19,7 +19,7 @@ metadata:
       - gog
       - exec
     timeout: 900 # 15 minutes
-    model: default
+    model: glm-4.7  # Fast model for drafting
 ---
 
 # Comms Agent

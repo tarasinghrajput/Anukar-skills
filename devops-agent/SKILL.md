@@ -19,7 +19,7 @@ metadata:
       - git
       - browser
     timeout: 600 # 10 minutes
-    model: default
+    model: glm-4.7  # Fast model for CLI operations
 ---
 
 # DevOps Agent
