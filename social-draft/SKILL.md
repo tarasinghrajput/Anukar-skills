@@ -21,16 +21,10 @@ Ask the user for:
 
 ### 2. Draft Twitter Post (X)
 
-**CRITICAL RULE: Each tweet MUST be under 280 characters.**
-
-- If content fits in 280 chars → Single tweet
-- If content exceeds 280 chars → Split into 2+ tweets (thread)
-- ALWAYS include character count for each tweet
-- Signal thread with "🧵" at end of first tweet if multi-tweet
-
 **Hook Rules:**
 - First 7 words must stop the scroll
 - Use specific numbers/results
+- Under 110 characters for single tweets
 - Signal thread with "🧵" if needed
 
 **Format Options:**
@@ -43,7 +37,6 @@ Ask the user for:
 - No "Like and RT!" begging
 - End with question to drive replies
 - Post during peak hours (9-11 AM / 7-9 PM EST)
-- ALWAYS verify character count before delivering
 
 ### 3. Draft LinkedIn Post
 
@@ -84,8 +77,7 @@ Present both drafts clearly labeled:
 
 | Element | Twitter | LinkedIn |
 |---------|---------|----------|
-| Max length | 280 chars HARD LIMIT (split to thread if needed) | 3000 chars (1300 optimal) |
-| Character count | MUST include in draft | Not required |
+| Max length | 280 chars | 3000 chars (1300 optimal) |
 | Paragraphs | N/A | 1-2 sentences max |
 | Hashtags | 1-2 inline | 3-5 at bottom only |
 | Links | In reply, not main | OK in post |
@@ -100,7 +92,6 @@ Present both drafts clearly labeled:
 
 ### 🐦 Twitter Draft
 ```
-Tweet 1 (215 chars):
 Just shipped a new skill for my AI assistant. 🚀
 
 Now I can say "PMS Bug addition" and it:
@@ -112,8 +103,6 @@ All automated. Zero manual work.
 
 What's your favorite automation hack?
 ```
-
----
 
 ### 💼 LinkedIn Draft
 ```
@@ -145,12 +134,10 @@ What repetitive task would you automate if you could?
 Before delivering, verify:
 
 **Twitter:**
-- [ ] **EACH tweet under 280 characters (MANDATORY)**
-- [ ] Character count included for each tweet
 - [ ] Hook stops scroll (bold/specific/curious)
+- [ ] Under 280 characters (110 optimal)
 - [ ] No external links in main tweet
 - [ ] Has engagement driver (question)
-- [ ] Thread indicator (🧵) if multiple tweets
 
 **LinkedIn:**
 - [ ] First 2 lines compelling
