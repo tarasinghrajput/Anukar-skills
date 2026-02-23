@@ -16,12 +16,13 @@ Manage Tara's daily task workflow from planning to completion tracking.
 
 ---
 
-## Sheet References
+## Sheet & Task References
 
-| Sheet | ID | Tab |
-|-------|-------|-----|
-| **Weekly Targets** | `1to3web3WdMHlGWGnu5BieMX2QZ0AN9J0iTgLRZac5T4` | Tech |
-| **Team Daily Update** | `1GgRgfVBrF-ReGPRmntT6Cm2BjiLzJ3JiBaC4lMfrMQs` | {Month} {Year} Daily Updates |
+| Resource | ID | Purpose |
+|----------|-------|---------|
+| **Weekly Targets Sheet** | `1to3web3WdMHlGWGnu5BieMX2QZ0AN9J0iTgLRZac5T4` | Tech tab - source of truth |
+| **Team Daily Update Sheet** | `1GgRgfVBrF-ReGPRmntT6Cm2BjiLzJ3JiBaC4lMfrMQs` | {Month} {Year} Daily Updates |
+| **Google Tasks List** | `YXdrWnhDNkYzWldMc2plaQ` | AP Weekly Tasks |
 
 ---
 
@@ -453,3 +454,169 @@ Row 23, Column B updated with:
 - At EOD, data is written to Team Daily Update sheet
 - Weekly Target sheet is read-only (status updates manual)
 - Supports ad-hoc tasks via "add task: [description]"
+
+---
+
+## Google Tasks Integration
+
+### Overview
+
+Tasks sync between Weekly Sheet → Google Tasks → Team Daily Sheet for seamless mobile access.
+
+### Task List
+
+- **List Name:** AP Weekly Tasks
+- **List ID:** `YXdrWnhDNkYzWldMc2plaQ`
+- **Access:** https://tasks.google.com (login with anukar2004@gmail.com)
+
+### Morning Sync (10:00 AM)
+
+After reading Weekly Sheet, sync tasks to Google Tasks:
+
+```bash
+TASK_LIST_ID="YXdrWnhDNkYzWldMc2plaQ"
+
+# Clear existing tasks (optional)
+# gog tasks list "$TASK_LIST_ID" --json | python3 -c "parse and delete"
+
+# Add new tasks
+for task in weekly_tasks:
+    gog tasks add "$TASK_LIST_ID" \
+        --title "[{priority}] {team}: {task_name}" \
+        --notes "{notes}. Week {week}, {month} {year}."
+```
+
+### Throughout the Day
+
+#### Check Task Status
+
+```bash
+gog tasks list "YXdrWnhDNkYzWldMc2plaQ" --json | python3 -c "
+import sys, json
+
+data = json.load(sys.stdin)
+tasks = data.get('tasks', [])
+
+print('📊 TASK STATUS:')
+print()
+
+completed = [t for t in tasks if t['status'] == 'completed']
+pending = [t for t in tasks if t['status'] == 'needsAction']
+
+print(f'✅ Completed: {len(completed)}')
+print(f'⏳ Pending: {len(pending)}')
+print()
+
+for task in pending:
+    print(f\"  - {task['title']}\")
+"
+```
+
+#### Mark Task Complete
+
+When Tara says "task done: [description]":
+
+```bash
+# Find task by title
+TASK_ID=$(gog tasks list "$TASK_LIST_ID" --json | \
+    python3 -c "import sys,json; tasks=json.load(sys.stdin)['tasks']; [print(t['id']) for t in tasks if 'search_term' in t['title'].lower()]")
+
+# Mark as complete
+gog tasks done "$TASK_LIST_ID" "$TASK_ID"
+```
+
+### EOD Auto-Update
+
+Read completed tasks from Google Tasks and update Team Daily Sheet:
+
+```bash
+# Get completed tasks
+gog tasks list "YXdrWnhDNkYzWldMc2plaQ" --json | python3 -c "
+import sys, json
+from datetime import datetime, timedelta
+
+data = json.load(sys.stdin)
+tasks = data.get('tasks', [])
+
+# Get today's completed tasks
+today = datetime.now().strftime('%Y-%m-%d')
+completed_today = []
+
+for task in tasks:
+    if task['status'] == 'completed':
+        completed_date = task.get('completed', '')[:10]
+        if completed_date == today:
+            completed_today.append(task['title'])
+
+# Format for Team Daily Sheet
+software = [t for t in completed_today if 'SOFTWARE' in t.upper()]
+website = [t for t in completed_today if 'WEBSITE' in t.upper()]
+
+output = ''
+if website:
+    output += 'Website\\n'
+    for t in website:
+        # Remove [P0], [P1], etc.
+        clean = t.split(']')[-1].strip().replace('Website:', '').strip()
+        output += f' - {clean}\\n'
+
+if software:
+    output += 'Software\\n'
+    for t in software:
+        clean = t.split(']')[-1].strip().replace('Software:', '').strip()
+        output += f' - {clean}\\n'
+
+print(output)
+"
+```
+
+### Benefits
+
+| Feature | Benefit |
+|---------|---------|
+| **Mobile Access** | Check/completed tasks on phone |
+| **Auto-sync** | Updates reflected everywhere |
+| **Reminders** | Get notified about pending tasks |
+| **One-tap complete** | Faster than typing |
+| **Auto-update sheet** | No manual entry needed |
+
+### Google Tasks Links
+
+- **Web:** https://tasks.google.com
+- **Android:** Google Tasks app (pre-installed)
+- **iOS:** Download Google Tasks app
+
+---
+
+## Automation Schedule
+
+| Time | Action |
+|------|--------|
+| **10:00 AM** | Sync weekly tasks to Google Tasks |
+| **Every 2 hours** | Check task status, send reminder if needed |
+| **5:00 PM** | Read completed tasks, update Team Daily Sheet |
+| **6:00 PM** | Send EOD summary |
+
+---
+
+## Example: Complete Integration Flow
+
+```
+10:00 AM - Tara arrives
+├─ Anukar: "Plan my day"
+├─ Read Weekly Sheet (Tech tab)
+├─ Show tasks for selection
+├─ Sync to Google Tasks
+└─ Generate WhatsApp format
+
+2:00 PM - Midday check
+├─ Tara checks Google Tasks on phone
+├─ Taps "Complete" on finished tasks
+└─ Anukar: "2/4 tasks done. Keep going!"
+
+5:30 PM - End of day
+├─ Anukar reads Google Tasks
+├─ Gets 3 completed tasks
+├─ Updates Team Daily Sheet automatically
+└─ Sends EOD summary: "75% completion rate"
+```
