@@ -18,7 +18,7 @@ User message contains:
 This skill is designed for **Madhur** (Academic Associate) who designs curricula for PODs.
 
 ## Configuration
-- **YouTube API Key:** Stored in `~/.openclaw/workspace/.api_keys`
+- **API Keys:** Stored locally in `skills/curriculum-designer/.env` (NOT in git)
 - **Output Folder:** `1upJQu-IVmZRJQsNGmJNRzq9IwL67MVL9` (Curriculum Designer)
 
 ---
@@ -59,14 +59,18 @@ Ask the following questions (from SOP) to understand the POD's needs:
 
 #### YouTube Search Function
 
+Load API key from local config:
 ```bash
-# Function to search YouTube for educational videos
+# Read API key from local .env file (NOT committed to git)
+API_KEY=$(cat ~/.openclaw/workspace/skills/curriculum-designer/.env | grep YOUTUBE_API_KEY | cut -d= -f2)
+```
+
+Search for videos:
+```bash
 search_youtube() {
     local query="$1"
-    local api_key="AIzaSyCPcagIbbRoN5enFc0YAvt9s9KQ3_iWt1Y"
     
-    # Search for videos (short duration = <4min, medium = 4-20min)
-    curl -s "https://www.googleapis.com/youtube/v3/search?part=snippet&q=${query}+tutorial+hindi+beginners&type=video&maxResults=5&videoDuration=medium&key=${api_key}" | \
+    curl -s "https://www.googleapis.com/youtube/v3/search?part=snippet&q=${query}+tutorial+hindi+beginners&type=video&maxResults=5&videoDuration=medium&key=${API_KEY}" | \
     python3 -c "
 import sys, json
 try:
@@ -125,14 +129,6 @@ Based on requirements, create a structured curriculum with:
 | Skill Development | Programming, design, content creation |
 | Employment Readiness | Resume, communication, job skills |
 
-#### Module Structure
-For each module:
-- **Module Name** - Clear topic name
-- **Duration** - Number of days/sessions
-- **Learning Objectives** - What students will learn
-- **Assessments** - How to measure progress
-- **Resources** - **REAL YouTube URLs** + tools needed
-
 ---
 
 ### Phase 4: Create Curriculum Sheet with Real URLs
@@ -161,106 +157,6 @@ For each module:
 
 ---
 
-## YouTube Search Implementation
-
-### Bash Function for Curriculum Designer
-
-```bash
-#!/bin/bash
-# search_videos.sh - Search YouTube for curriculum videos
-
-API_KEY="AIzaSyCPcagIbbRoN5enFc0YAvt9s9KQ3_iWt1Y"
-
-search_topic() {
-    local topic="$1"
-    local encoded_query=$(echo "$topic tutorial hindi beginners" | sed 's/ /+/g')
-    
-    curl -s "https://www.googleapis.com/youtube/v3/search?part=snippet&q=${encoded_query}&type=video&maxResults=5&videoDuration=medium&key=${API_KEY}" | \
-    python3 << PYEOF
-import sys, json
-try:
-    data = json.load(sys.stdin)
-    items = data.get('items', [])
-    if items:
-        # Return first valid video
-        video = items[0]
-        video_id = video['id']['videoId']
-        title = video['snippet']['title']
-        print(f"https://youtube.com/watch?v={video_id}")
-    else:
-        print("No video found")
-except:
-    print("Search failed")
-PYEOF
-}
-
-# Usage examples
-# search_topic "computer basics"
-# search_topic "google sheets formulas"
-# search_topic "chatgpt for students"
-```
-
-### Python Helper for Bulk Searches
-
-```python
-#!/usr/bin/env python3
-# bulk_youtube_search.py
-
-import requests
-import json
-
-API_KEY = "AIzaSyCPcagIbbRoN5enFc0YAvt9s9KQ3_iWt1Y"
-
-def search_videos(query, max_results=3):
-    """Search YouTube for educational videos"""
-    url = "https://www.googleapis.com/youtube/v3/search"
-    params = {
-        'part': 'snippet',
-        'q': f'{query} tutorial hindi beginners',
-        'type': 'video',
-        'maxResults': max_results,
-        'videoDuration': 'medium',  # 4-20 minutes
-        'key': API_KEY
-    }
-    
-    response = requests.get(url, params=params)
-    data = response.json()
-    
-    videos = []
-    for item in data.get('items', []):
-        videos.append({
-            'url': f"https://youtube.com/watch?v={item['id']['videoId']}",
-            'title': item['snippet']['title'],
-            'channel': item['snippet']['channelTitle']
-        })
-    
-    return videos
-
-# Curriculum topics to search
-TOPICS = [
-    "computer basics",
-    "typing practice",
-    "internet browser",
-    "gmail email",
-    "google docs",
-    "google sheets",
-    "chatgpt",
-    "grammarly",
-    "canva design",
-    "resume writing",
-    "interview tips",
-    "linkedin profile"
-]
-
-# Search all topics
-for topic in TOPICS:
-    videos = search_videos(topic)
-    if videos:
-        print(f"{topic}: {videos[0]['url']}")
-```
-
----
-
 ## Important Guidelines
 
 ### Video Selection Criteria
@@ -276,30 +172,6 @@ for topic in TOPICS:
 - **Summative** (end): Projects, presentations, comprehensive tests
 - Keep assessments **practical and hands-on**
 
-### API Usage
-- **Quota:** 10,000 units/day
-- **Each search:** ~100 units
-- **Max searches per curriculum:** ~60 (one per day for 60-day curriculum)
-- **Stay within limits:** Batch searches, cache results
-
----
-
-## Example Output
-
-### Before (Old)
-```
-| YouTube Link |
-|--------------|
-| Search: 'Windows basics tutorial Hindi for beginners' |
-```
-
-### After (New)
-```
-| YouTube Link |
-|--------------|
-| https://youtube.com/watch?v=4lraNH0jLb8 |
-```
-
 ---
 
 ## Folder Reference
@@ -312,10 +184,17 @@ for topic in TOPICS:
 
 ---
 
+## Security Note
+
+⚠️ **API keys are stored locally in `.env` file - NEVER commit this file to git!**
+
+The `.env` file is excluded from version control.
+
+---
+
 ## Notes
 
 - Always search for REAL video URLs before creating curriculum
 - Save curriculum sheets in the designated folder
 - Share viewable link at the end
-- Cache video searches to avoid API quota limits
 - Consider teacher training needs if curriculum requires new tools
