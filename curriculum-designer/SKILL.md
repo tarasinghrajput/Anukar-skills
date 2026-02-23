@@ -1,11 +1,11 @@
 ---
 name: curriculum-designer
-description: "Design customized curricula for PODs. Use when user says 'Design curriculum', 'Create curriculum for POD', or 'Build learning plan'. Gathers requirements, researches resources, and creates a structured curriculum sheet with daily objectives, assessments, and video links."
+description: "Design customized curricula for PODs with REAL resource links. Use when user says 'Design curriculum', 'Create curriculum for POD', or 'Build learning plan'. Gathers requirements, searches YouTube for actual video URLs, and creates a structured curriculum sheet with daily objectives, assessments, and real video links."
 ---
 
 # Curriculum Designer
 
-Design customized curricula for Apni Pathshala PODs based on Madhur's workflow.
+Design customized curricula for Apni Pathshala PODs with **real YouTube video links**.
 
 ## Trigger
 User message contains:
@@ -16,6 +16,10 @@ User message contains:
 
 ## Target User
 This skill is designed for **Madhur** (Academic Associate) who designs curricula for PODs.
+
+## Configuration
+- **YouTube API Key:** Stored in `~/.openclaw/workspace/.api_keys`
+- **Output Folder:** `1upJQu-IVmZRJQsNGmJNRzq9IwL67MVL9` (Curriculum Designer)
 
 ---
 
@@ -36,7 +40,7 @@ Ask the following questions (from SOP) to understand the POD's needs:
 
 #### Teacher Context
 8. **Teacher Capability** - Can teachers operate computers independently?
-9. **Teacher Training Needed** - Do teachers need any training to deliver this curriculum?
+9. **Teacher Training Needed** - Do teachers need any training?
 
 #### Learning Outcomes
 10. **Learning Area Focus** - Which area(s) to prioritize?
@@ -44,25 +48,68 @@ Ask the following questions (from SOP) to understand the POD's needs:
     - Academic Empowerment
     - Skill Development
     - Employment Readiness
-11. **Specific Skills** - What specific skills should students acquire by the end?
-12. **Assessment Method** - How will learning be measured? (quizzes, projects, exams)
+11. **Specific Skills** - What specific skills should students acquire?
+12. **Assessment Method** - How will learning be measured?
 
 ---
 
-### Phase 2: Research Resources
+### Phase 2: Research & Find Resources (AUTOMATED)
 
-Before drafting the curriculum, research relevant free resources:
+**This phase now AUTOMATICALLY searches YouTube for real video URLs.**
 
-**Research Steps:**
-1. Search for free video resources on the topic (YouTube, Khan Academy, etc.)
-2. Find interactive tools and platforms (free tier)
-3. Look for existing curricula/templates in the Apni Pathshala drive
-4. Identify age-appropriate content
+#### YouTube Search Function
 
-**Video Requirements:**
-- ⚠️ Videos should be **5-10 minutes max** to maintain student interest
-- Avoid long-form content (boring for students)
-- Prefer Hindi/English bilingual content for accessibility
+```bash
+# Function to search YouTube for educational videos
+search_youtube() {
+    local query="$1"
+    local api_key="AIzaSyCPcagIbbRoN5enFc0YAvt9s9KQ3_iWt1Y"
+    
+    # Search for videos (short duration = <4min, medium = 4-20min)
+    curl -s "https://www.googleapis.com/youtube/v3/search?part=snippet&q=${query}+tutorial+hindi+beginners&type=video&maxResults=5&videoDuration=medium&key=${api_key}" | \
+    python3 -c "
+import sys, json
+try:
+    data = json.load(sys.stdin)
+    items = data.get('items', [])
+    for item in items[:3]:
+        video_id = item['id']['videoId']
+        title = item['snippet']['title']
+        print(f'https://youtube.com/watch?v={video_id}')
+        print(f'TITLE: {title}')
+except: pass
+"
+}
+```
+
+#### Search Queries by Topic
+
+| Topic | Search Query |
+|-------|--------------|
+| Computer Basics | `computer basics tutorial hindi beginners` |
+| File Management | `file folder management windows hindi` |
+| Typing | `typing practice hindi tutorial` |
+| Internet | `internet browser basics hindi` |
+| Email | `gmail email tutorial hindi beginners` |
+| Google Docs | `google docs tutorial hindi` |
+| Google Sheets | `google sheets formulas hindi` |
+| ChatGPT | `chatgpt tutorial hindi beginners 2024` |
+| AI Tools | `ai tools for students hindi` |
+| Resume | `resume writing hindi tutorial` |
+| Interview Skills | `job interview tips hindi` |
+| Canva | `canva tutorial hindi beginners` |
+| LinkedIn | `linkedin profile create hindi` |
+
+#### Research Process
+
+For each curriculum topic:
+1. **Search YouTube** using the API
+2. **Filter results:**
+   - Duration: 5-10 minutes (use `videoDuration=medium`)
+   - Language: Hindi/English
+   - Quality: View count, relevance
+3. **Select top 2-3 videos** per topic
+4. **Store URLs** with titles for the curriculum
 
 ---
 
@@ -84,11 +131,11 @@ For each module:
 - **Duration** - Number of days/sessions
 - **Learning Objectives** - What students will learn
 - **Assessments** - How to measure progress
-- **Resources** - Video links, tools needed
+- **Resources** - **REAL YouTube URLs** + tools needed
 
 ---
 
-### Phase 4: Create Curriculum Sheet
+### Phase 4: Create Curriculum Sheet with Real URLs
 
 **Output Format:** Google Sheet with the following columns:
 
@@ -99,17 +146,8 @@ For each module:
 | Module | Module/Topic name |
 | Daily Learning Objectives | What students learn that day |
 | Daily Assessment | How to assess understanding |
-| YouTube Link | Video resource (5-10 min) |
+| YouTube Link | **REAL video URL** (5-10 min) |
 | Tools Used | Required software/platforms |
-
-**Sheet Creation Commands:**
-```bash
-# Create new sheet in the Curriculum Designer folder
-# Folder ID: 1upJQu-IVmZRJQsNGmJNRzq9IwL67MVL9
-
-# Build the curriculum data as JSON
-# Then create the sheet with gog
-```
 
 ---
 
@@ -117,39 +155,119 @@ For each module:
 
 1. **Create the sheet** in the Curriculum Designer folder
 2. **Set up columns** with headers
-3. **Populate with curriculum data** (all days/lessons)
+3. **Populate with curriculum data** including **real YouTube URLs**
 4. **Get shareable link** with "Anyone with link can view"
 5. **Return the link** to Madhur
 
 ---
 
-## Curriculum Sheet Template
+## YouTube Search Implementation
 
-```json
-{
-  "headers": ["Day", "Subject", "Module", "Daily Learning Objectives", "Daily Assessment", "YouTube Link", "Tools Used"],
-  "rows": [
-    {
-      "day": 1,
-      "subject": "AI Basics – Understanding & Safe Use",
-      "module": "AI Basics – What is AI + GenAI (simple)",
-      "objectives": "Understand what AI is, where students see it daily, and what GenAI means.",
-      "assessment": "Write 3 examples of AI you use daily + 2 benefits + 1 risk.",
-      "youtube": "https://youtube.com/...",
-      "tools": "Notebook, Phone/PC"
-    }
-  ]
+### Bash Function for Curriculum Designer
+
+```bash
+#!/bin/bash
+# search_videos.sh - Search YouTube for curriculum videos
+
+API_KEY="AIzaSyCPcagIbbRoN5enFc0YAvt9s9KQ3_iWt1Y"
+
+search_topic() {
+    local topic="$1"
+    local encoded_query=$(echo "$topic tutorial hindi beginners" | sed 's/ /+/g')
+    
+    curl -s "https://www.googleapis.com/youtube/v3/search?part=snippet&q=${encoded_query}&type=video&maxResults=5&videoDuration=medium&key=${API_KEY}" | \
+    python3 << PYEOF
+import sys, json
+try:
+    data = json.load(sys.stdin)
+    items = data.get('items', [])
+    if items:
+        # Return first valid video
+        video = items[0]
+        video_id = video['id']['videoId']
+        title = video['snippet']['title']
+        print(f"https://youtube.com/watch?v={video_id}")
+    else:
+        print("No video found")
+except:
+    print("Search failed")
+PYEOF
 }
+
+# Usage examples
+# search_topic "computer basics"
+# search_topic "google sheets formulas"
+# search_topic "chatgpt for students"
+```
+
+### Python Helper for Bulk Searches
+
+```python
+#!/usr/bin/env python3
+# bulk_youtube_search.py
+
+import requests
+import json
+
+API_KEY = "AIzaSyCPcagIbbRoN5enFc0YAvt9s9KQ3_iWt1Y"
+
+def search_videos(query, max_results=3):
+    """Search YouTube for educational videos"""
+    url = "https://www.googleapis.com/youtube/v3/search"
+    params = {
+        'part': 'snippet',
+        'q': f'{query} tutorial hindi beginners',
+        'type': 'video',
+        'maxResults': max_results,
+        'videoDuration': 'medium',  # 4-20 minutes
+        'key': API_KEY
+    }
+    
+    response = requests.get(url, params=params)
+    data = response.json()
+    
+    videos = []
+    for item in data.get('items', []):
+        videos.append({
+            'url': f"https://youtube.com/watch?v={item['id']['videoId']}",
+            'title': item['snippet']['title'],
+            'channel': item['snippet']['channelTitle']
+        })
+    
+    return videos
+
+# Curriculum topics to search
+TOPICS = [
+    "computer basics",
+    "typing practice",
+    "internet browser",
+    "gmail email",
+    "google docs",
+    "google sheets",
+    "chatgpt",
+    "grammarly",
+    "canva design",
+    "resume writing",
+    "interview tips",
+    "linkedin profile"
+]
+
+# Search all topics
+for topic in TOPICS:
+    videos = search_videos(topic)
+    if videos:
+        print(f"{topic}: {videos[0]['url']}")
 ```
 
 ---
 
 ## Important Guidelines
 
-### Video Selection
+### Video Selection Criteria
 - ✅ **5-10 minutes max** - keeps engagement high
 - ✅ **Clear explanations** - no jargon-heavy content
 - ✅ **Hindi or bilingual** - accessible for all students
+- ✅ **Recent content** - prefer 2023+ videos
 - ❌ **Long lectures** - students lose interest
 - ❌ **Advanced content** - match to target audience level
 
@@ -158,42 +276,29 @@ For each module:
 - **Summative** (end): Projects, presentations, comprehensive tests
 - Keep assessments **practical and hands-on**
 
-### Flexibility
-- Curriculum should accommodate different learning speeds
-- Include alternative resources for advanced/struggling students
-- Build in buffer days for revision or catch-up
+### API Usage
+- **Quota:** 10,000 units/day
+- **Each search:** ~100 units
+- **Max searches per curriculum:** ~60 (one per day for 60-day curriculum)
+- **Stay within limits:** Batch searches, cache results
 
 ---
 
-## Example Interaction
+## Example Output
 
-**User:** "Design curriculum for a POD teaching AI tools to Class 8-10 students"
+### Before (Old)
+```
+| YouTube Link |
+|--------------|
+| Search: 'Windows basics tutorial Hindi for beginners' |
+```
 
-**Response:**
-
-### Phase 1: Requirements Gathering
-I'll need some details to design this curriculum:
-
-1. **POD Name:** [Which POD?]
-2. **Duration:** How many weeks/months?
-3. **Classes per week:** Daily? 3x/week?
-4. **Previous exposure:** Have students used AI tools before?
-5. **Teacher capability:** Can the teacher guide students through AI tools?
-6. **Learning focus:** What's the main goal?
-   - [ ] Basic AI understanding
-   - [ ] Using AI for studying
-   - [ ] AI for projects/creativity
-   - [ ] All of the above
-
----
-
-### Phase 2: Research
-[Search for relevant 5-10 min YouTube videos on AI basics, ChatGPT, etc.]
-
----
-
-### Phase 3-5: Curriculum Creation
-[Generate sheet with 30-day curriculum covering AI basics, ChatGPT, NotebookLM, Perplexity, Grammarly, Canva AI, etc.]
+### After (New)
+```
+| YouTube Link |
+|--------------|
+| https://youtube.com/watch?v=4lraNH0jLb8 |
+```
 
 ---
 
@@ -209,8 +314,8 @@ I'll need some details to design this curriculum:
 
 ## Notes
 
-- Always confirm requirements before generating full curriculum
+- Always search for REAL video URLs before creating curriculum
 - Save curriculum sheets in the designated folder
 - Share viewable link at the end
-- Document curriculum version for future reference
+- Cache video searches to avoid API quota limits
 - Consider teacher training needs if curriculum requires new tools
