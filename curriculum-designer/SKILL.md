@@ -1,33 +1,119 @@
 ---
 name: curriculum-designer
-description: "Design customized curricula for PODs with REAL resource links. Use when user says 'Design curriculum', 'Create curriculum for POD', or 'Build learning plan'. Gathers requirements, searches YouTube for actual video URLs, and creates a structured curriculum sheet with daily objectives, assessments, and real video links."
+description: "Design customized curricula for PODs with REAL resource links. Staged implementation with checkpointing and fallback logic. Use when user says 'Design curriculum', 'Create curriculum for POD', or 'Build learning plan'."
 ---
 
 # Curriculum Designer
 
 Design customized curricula for Apni Pathshala PODs with **real YouTube video links**.
 
+**FEATURES:**
+- ✅ Staged execution with checkpointing (recovery from failures)
+- ✅ YouTube link verification with **fallback logic** (no blank URLs)
+- ✅ Context capping per lesson (reduced token usage)
+- ✅ Every topic gets a valid video OR search query fallback
+
+---
+
+## ⚡ Quick Start
+
+### How This Skill Works
+
+When invoked, the agent follows a **5-stage workflow** with checkpointing:
+
+| Stage | What Happens | Checkpoint File |
+|--------|--------------|-----------------|
+| 1 | Gather requirements | `requirements.json` |
+| 2 | Research YouTube videos | `research-results.json` |
+| 3 | Verify videos + **fallback logic** | `validated-resources.json` |
+| 4 | Design curriculum (one lesson at a time) | `curriculum-structure.json` |
+| 5 | Create Google Sheet | `final-sheet-url.txt` |
+
+### Checkpoint Behavior
+- Each stage saves its output to a checkpoint file
+- If checkpoint exists, stage loads it and **skips processing**
+- If checkpoint doesn't exist, stage runs from scratch
+- Re-running resumes from first **incomplete stage**
+
+---
+
 ## Trigger
+
 User message contains:
 - **"Design curriculum"** → Start curriculum creation
 - **"Create curriculum for [POD name]"** → Start with POD context
 - **"Build learning plan"** → Start curriculum creation
 - **"Curriculum for [subject/topic]"** → Start with topic context
 
-## Target User
-This skill is designed for **Madhur** (Academic Associate) who designs curricula for PODs.
+---
 
-## Configuration
-- **API Keys:** Stored locally in `skills/curriculum-designer/.env` (NOT in git)
-- **Output Folder:** `1upJQu-IVmZRJQsNGmJNRzq9IwL67MVL9` (Curriculum Designer)
+## Target User
+
+This skill is designed for **Madhur** (Academic Associate) who designs curricula for PODs.
 
 ---
 
-## Workflow
+## Configuration
 
-### Phase 1: Gather Requirements
+- **API Keys:** Stored locally in `~/.openclaw/workspace/skills/curriculum-designer/.env` (NOT in git)
+- **Output Folder:** `1upJQu-IVmZRJQsNGmJNRzq9IwL67MVL9` (Curriculum Designer)
+- **Checkpoint Directory:** `~/.openclaw/workspace/curriculum-designer-checkpoints/`
 
-Ask the following questions (from SOP) to understand the POD's needs:
+**YouTube API Key:**
+```
+YOUTUBE_API_KEY=your_key_here
+```
+
+Get from: https://console.cloud.google.com/apis/credentials
+
+---
+
+## Agent Workflow Instructions
+## Model Allocation for Stages
+
+**Action:** Use different LLM models for different stages to optimize cost and performance.
+
+### Stage-Specific Model Assignment
+
+| Stage | Recommended Model | Reason |
+|--------|------------------|--------|
+| Stage 1: Requirements Collection | glm-4.7 | Quick reasoning, sufficient for form filling |
+| Stage 2: YouTube Research | **glm-5** | Fast research, needs latest web knowledge |
+| Stage 3: Video Validation | glm-4.7 | Pattern matching, simple logic |
+| Stage 4: Curriculum Design | **glm-4.7** | Structured generation, cost-effective for lessons |
+| Stage 5: Sheet Creation | glm-4.7 | JSON formatting, simple transformations |
+
+### How to Set Models
+
+**Option 1: Specify model when calling agent**
+```bash
+# Use glm-5 for research stage
+agent.chat --model glm-5 --message "Research YouTube videos for..."
+
+# Use glm-4.7 for design stage
+agent.chat --model glm-4.7 --message "Generate lesson structure..."
+```
+
+**Option 2: Configure in SKILL.md**
+Each stage should include model recommendation in its instructions:
+
+```
+### Stage 2: Research YouTube Resources
+
+**Action:** Search YouTube for videos based on requirements
+
+**Recommended Model:** glm-5 (fast research, latest web knowledge)
+
+**Why:** Research needs up-to-date information and fast processing.
+```
+
+---
+
+## Agent Workflow Instructions
+
+### Stage 1: Gather Requirements
+
+**Action:** Ask the user these questions (from SOP):
 
 #### Basic Information
 1. **POD Name** - Which POD is this curriculum for?
@@ -51,121 +137,508 @@ Ask the following questions (from SOP) to understand the POD's needs:
 11. **Specific Skills** - What specific skills should students acquire?
 12. **Assessment Method** - How will learning be measured?
 
----
-
-### Phase 2: Research & Find Resources (AUTOMATED)
-
-**This phase now AUTOMATICALLY searches YouTube for real video URLs.**
-
-#### YouTube Search Function
-
-Load API key from local config:
-```bash
-# Read API key from local .env file (NOT committed to git)
-API_KEY=$(cat ~/.openclaw/workspace/skills/curriculum-designer/.env | grep YOUTUBE_API_KEY | cut -d= -f2)
-```
-
-Search for videos:
-```bash
-search_youtube() {
-    local query="$1"
-    
-    curl -s "https://www.googleapis.com/youtube/v3/search?part=snippet&q=${query}+tutorial+hindi+beginners&type=video&maxResults=5&videoDuration=medium&key=${API_KEY}" | \
-    python3 -c "
-import sys, json
-try:
-    data = json.load(sys.stdin)
-    items = data.get('items', [])
-    for item in items[:3]:
-        video_id = item['id']['videoId']
-        title = item['snippet']['title']
-        print(f'https://youtube.com/watch?v={video_id}')
-        print(f'TITLE: {title}')
-except: pass
-"
+**Output:** Save to checkpoint as JSON:
+```json
+{
+  "pod_name": "Example POD",
+  "target_audience": "Grade 8-10",
+  "subject_areas": ["Digital Literacy", "Computer Basics"],
+  "duration": "1 month",
+  "frequency": "3 days/week",
+  "daily_lab_hours": 2,
+  "previous_exposure": "None",
+  "teacher_capability": "Basic",
+  "teacher_training_needed": true,
+  "learning_area_focus": ["Digital Literacy"],
+  "specific_skills": ["Basic computer operations", "Internet safety"],
+  "assessment_method": "Practical exercises and quizzes"
 }
 ```
 
-#### Search Queries by Topic
-
-| Topic | Search Query |
-|-------|--------------|
-| Computer Basics | `computer basics tutorial hindi beginners` |
-| File Management | `file folder management windows hindi` |
-| Typing | `typing practice hindi tutorial` |
-| Internet | `internet browser basics hindi` |
-| Email | `gmail email tutorial hindi beginners` |
-| Google Docs | `google docs tutorial hindi` |
-| Google Sheets | `google sheets formulas hindi` |
-| ChatGPT | `chatgpt tutorial hindi beginners 2024` |
-| AI Tools | `ai tools for students hindi` |
-| Resume | `resume writing hindi tutorial` |
-| Interview Skills | `job interview tips hindi` |
-| Canva | `canva tutorial hindi beginners` |
-| LinkedIn | `linkedin profile create hindi` |
-
-#### Research Process
-
-For each curriculum topic:
-1. **Search YouTube** using the API
-2. **Filter results:**
-   - Duration: 5-10 minutes (use `videoDuration=medium`)
-   - Language: Hindi/English
-   - Quality: View count, relevance
-3. **Select top 2-3 videos** per topic
-4. **Store URLs** with titles for the curriculum
+**Checkpoint:** `~/.openclaw/workspace/curriculum-designer-checkpoints/<timestamp>-<session-id>/requirements.json`
 
 ---
 
-### Phase 3: Design Curriculum Structure
+### Stage 2: Research YouTube Resources
 
-Based on requirements, create a structured curriculum with:
+**Action:** Search YouTube for videos based on requirements
 
-#### Learning Areas Framework
-| Learning Area | Focus |
-|---------------|-------|
-| Digital Literacy | Basic computer skills, internet safety, AI tools |
-| Academic Empowerment | Study skills, exam prep, note-taking |
-| Skill Development | Programming, design, content creation |
-| Employment Readiness | Resume, communication, job skills |
+**API:** Use YouTube Data API v3 with key from `.env`
+
+**Search Queries (Default):**
+```python
+search_queries = [
+    "computer basics tutorial hindi beginners",
+    "typing practice hindi tutorial",
+    "internet browser basics hindi",
+    "gmail email tutorial hindi beginners",
+    "google docs tutorial hindi",
+    "google sheets tutorial hindi",
+    "chatgpt tutorial hindi beginners 2024",
+    "ai tools for students hindi"
+]
+```
+
+**Search Parameters:**
+- `part=snippet`
+- `q=<query>`
+- `type=video`
+- `maxResults=5`
+- `videoDuration=medium` (5-10 minutes preferred)
+- `relevanceLanguage=hi` (Hindi preference)
+
+**Output Structure:**
+```json
+{
+  "resources": [
+    {
+      "topic": "computer basics",
+      "videos": [
+        {
+          "title": "Computer Basics for Beginners in Hindi",
+          "channel": "TechGuruji",
+          "url": "https://youtube.com/watch?v=ABC123",
+          "video_id": "ABC123"
+        }
+      ]
+    }
+  ]
+}
+```
+
+#### Research Summary (Before Validation)
+
+After completing all searches, **summarize the research results** before passing to validation stage.
+
+**Why summarize?**
+- Reduces token usage when passing to Stage 3 (validation)
+- Provides cleaner input for validation logic
+- Allows easy review of what was researched
+
+**Summary Structure:**
+```json
+{
+  "research_summary": {
+    "total_searches": 8,
+    "topics_researched": [
+      "computer basics",
+      "typing practice",
+      "internet browser basics",
+      "gmail email tutorial",
+      "google docs tutorial",
+      "google sheets tutorial",
+      "chatgpt tutorial",
+      "ai tools for students"
+    ],
+    "total_videos_found": 24,
+    "video_channels": ["TechGuruji", "LearnWithMe", "DigitalSkills", "HindiTechTutorials"],
+    "search_language": "Hindi preference",
+    "video_duration_preference": "5-10 minutes",
+    "notes": "Most videos from 2023-2024. Good variety of channels. Some topics have fewer results, may need fallback search."
+  }
+}
+```
+
+**Save summary:**
+- Append `research_summary` to `research-results.json`
+- Validation stage uses summary for context, not raw results
+
+**Checkpoint:** `~/.openclaw/workspace/curriculum-designer-checkpoints/<timestamp>-<session-id>/research-results.json`
 
 ---
 
-### Phase 4: Create Curriculum Sheet with Real URLs
+### Stage 3: Verify Videos + Fallback Logic
 
-**Output Format:** Google Sheet with the following columns:
+**Action:** Verify each video via YouTube oEmbed API. If invalid, retry with alternative search terms.
 
-| Column | Description |
+#### Verification Method
+
+Use oEmbed endpoint (fast, lightweight):
+```
+https://www.youtube.com/oembed?url=https://youtube.com/watch?v=VIDEO_ID
+```
+
+- HTTP 200 = Valid video
+- HTTP 404 = Invalid/deleted video
+- HTTP 4xx/5xx = Try again (rate limit or temporary error)
+
+#### Fallback Logic (CRITICAL)
+
+For **each topic**, follow this logic:
+
+```
+For each video in topic:
+  1. Verify via oEmbed
+  2. If valid → Add to validated list, done with topic
+  3. If invalid → Try next video in topic
+
+If NO valid videos found for topic:
+  1. Retry search with alternative queries:
+     - Original query + "part 2"
+     - Original query + "for students"
+     - Original query + "in english" (if Hindi failed)
+  2. Verify new results
+  3. If still no valid videos → ADD FALLBACK:
+     - "search_query": "<original query> tutorial hindi beginners"
+     - "fallback_reason": "No valid videos found, please search manually"
+```
+
+#### Output Structure (With Fallbacks)
+
+```json
+{
+  "resources": [
+    {
+      "topic": "computer basics",
+      "video": {
+        "title": "Computer Basics for Beginners in Hindi",
+        "channel": "TechGuruji",
+        "url": "https://youtube.com/watch?v=ABC123",
+        "video_id": "ABC123",
+        "status": "valid"
+      }
+    },
+    {
+      "topic": "advanced excel",
+      "fallback": {
+        "search_query": "advanced excel tutorial hindi beginners",
+        "reason": "No valid videos found after 3 retry attempts"
+      }
+    }
+  ]
+}
+```
+
+**IMPORTANT:** Every topic MUST have either:
+- A valid video URL, OR
+- A search query fallback
+
+**Checkpoint:** `~/.openclaw/workspace/curriculum-designer-checkpoints/<timestamp>-<session-id>/validated-resources.json`
+
+---
+
+### Stage 4: Design Curriculum (Context Capping + Summarization)
+
+**Action:** Generate curriculum structure, processing **one lesson at a time** with summarization and context cleanup.
+
+#### How Context Capping + Summarization Works
+
+**Instead of:**
+```
+Pass entire curriculum (all lessons) to LLM at once → High token usage
+```
+
+**Do this:**
+```
+For each lesson (1, 2, 3, ... N):
+  1. Load lesson N context only (this lesson's topic + resources)
+  2. Generate lesson content
+  3. SUMMARIZE lesson N context
+  4. Save lesson + summary to curriculum structure
+  5. WIPE lesson N context from memory
+  6. Continue to next lesson
+
+When all lessons complete:
+  1. Summarize entire curriculum
+  2. Save summary to curriculum structure
+  3. Save summary to Stage 2 checkpoint (research-results.json)
+```
+
+#### Lesson-by-Lesson Process
+
+**For lesson N:**
+
+1. **Load context:**
+   - Lesson N topic
+   - Lesson N resources (from validated-resources.json)
+   - Previous lesson summary (if N > 1)
+
+2. **Generate lesson:**
+   - Daily learning objectives
+   - Daily assessment
+   - Module content
+   - YouTube link/fallback
+
+3. **Summarize lesson:**
+   - Create concise summary of lesson N
+   - Focus on: key skills, tools used, assessment type
+
+4. **Save to curriculum:**
+   - Full lesson details
+   - Lesson summary (for next lesson's context)
+
+5. **Context cleanup:**
+   - Remove lesson N's full context from memory
+   - Keep only lesson N's summary for N+1
+
+#### Lesson Summary Template
+
+```json
+{
+  "lesson_number": 1,
+  "summary": "Students learned basic computer components, mouse/keyboard operations, and system navigation. Introduced primary computer parts and basic troubleshooting. Assessment involved identifying components and practicing typing.",
+  "key_skills": [
+    "Identifying computer parts",
+    "Mouse and keyboard basics",
+    "System navigation"
+  ],
+  "tools_used": ["Computer", "Mouse", "Keyboard"],
+  "assessment_type": "Practical exercise and observation"
+}
+```
+
+#### Lesson Generation Template
+
+For each lesson, generate:
+
+| Field | Description |
 |--------|-------------|
-| Day | Day number (1, 2, 3...) |
+| Day | Lesson number (1, 2, 3, ...) |
 | Subject | Subject area / Learning area |
 | Module | Module/Topic name |
 | Daily Learning Objectives | What students learn that day |
 | Daily Assessment | How to assess understanding |
-| YouTube Link | **REAL video URL** (5-10 min) |
+| YouTube Link | Valid video URL OR search query fallback |
+| YouTube Title | Video title (if applicable) |
 | Tools Used | Required software/platforms |
+| Fallback Search Query | Search query if no valid video (or blank) |
+| **Lesson Summary** | **Concise summary for next lesson's context** |
+
+#### Sample Lesson Output (With Summary)
+
+```json
+{
+  "day": 1,
+  "subject": "Digital Literacy",
+  "module": "Module 1: Introduction to Computers",
+  "daily_learning_objectives": "Understand basic computer components, learn to use mouse and keyboard",
+  "daily_assessment": "Practical exercise: Identify computer parts, practice typing",
+  "youtube_link": "https://youtube.com/watch?v=ABC123",
+  "youtube_title": "Computer Basics for Beginners in Hindi",
+  "tools_used": "Computer, Mouse, Keyboard",
+  "fallback_search_query": "",
+  "lesson_summary": {
+    "summary": "Students learned basic computer components, mouse/keyboard operations, and system navigation.",
+    "key_skills": ["Identifying computer parts", "Mouse and keyboard basics", "System navigation"],
+    "tools_used": ["Computer", "Mouse", "Keyboard"],
+    "assessment_type": "Practical exercise and observation"
+  }
+}
+```
+
+#### With Fallback Example
+
+```json
+{
+  "day": 5,
+  "subject": "Skill Development",
+  "module": "Module 5: Advanced Spreadsheets",
+  "daily_learning_objectives": "Learn Excel formulas and data analysis",
+  "daily_assessment": "Create a budget spreadsheet using formulas",
+  "youtube_link": "",
+  "youtube_title": "",
+  "tools_used": "Google Sheets",
+  "fallback_search_query": "advanced excel formulas tutorial hindi beginners",
+  "lesson_summary": {
+    "summary": "Students advanced from basic Google Sheets to formulas and data analysis. Learned SUM, AVERAGE, IF functions, and chart creation.",
+    "key_skills": ["Google Sheets formulas", "Data analysis basics", "Chart creation"],
+    "tools_used": ["Google Sheets"],
+    "assessment_type": "Project-based: Budget spreadsheet"
+  }
+}
+```
+
+#### Final Curriculum Summary (When All Lessons Complete)
+
+After generating all lessons:
+
+1. **Summarize entire curriculum:**
+   - Total lessons
+   - Subject areas covered
+   - Key skills progression
+   - Assessment approach
+   - Tools/software used
+
+2. **Save to curriculum structure:**
+
+```json
+{
+  "curriculum_summary": {
+    "total_lessons": 12,
+    "duration": "1 month",
+    "frequency": "3 days/week",
+    "subject_areas": ["Digital Literacy", "Skill Development"],
+    "skills_progression": [
+      "Week 1: Computer basics and navigation",
+      "Week 2: Internet and email fundamentals",
+      "Week 3: Document creation and editing",
+      "Week 4: Spreadsheets and data analysis"
+    ],
+    "assessment_methods": ["Practical exercises", "Quizzes", "Projects"],
+    "tools_used": ["Computer", "Google Docs", "Google Sheets", "YouTube videos"],
+    "learning_outcomes": "Students will gain basic computer literacy, internet safety awareness, and productivity tool proficiency."
+  }
+}
+```
+
+3. **Update Stage 2 checkpoint:**
+   - Add `curriculum_summary` field to `research-results.json`
+   - This keeps summary alongside research results for reference
+
+**Checkpoint:** `~/.openclaw/workspace/curriculum-designer-checkpoints/<timestamp>-<session-id>/curriculum-structure.json`
+
+**Also updates:** `~/.openclaw/workspace/curriculum-designer-checkpoints/<timestamp>-<session-id>/research-results.json` (adds curriculum_summary)
 
 ---
 
-### Phase 5: Save and Share
+\n### Stage 5: Create Google Sheet
 
-1. **Create the sheet** in the Curriculum Designer folder
-2. **Set up columns** with headers
-3. **Populate with curriculum data** including **real YouTube URLs**
-4. **Get shareable link** with "Anyone with link can view"
-5. **Return the link** to Madhur
+**Action:** Create real Google Sheet with curriculum data using gog CLI and share it with public view access.
+
+**Recommended Model:** glm-4.7 (JSON formatting, simple transformations)
+
+#### Agent Execution Steps
+
+**Step 1: Create spreadsheet**
+```bash
+# Use gog CLI to create new spreadsheet in designated folder
+# SHEET_ID is captured from JSON output
+
+SHEET_ID=$(gog drive spreadsheet create \
+  --name "Curriculum_${pod_name}_$(date +%Y-%m-%d)" \
+  --parent-folder "$GOG_FOLDER_ID" \
+  --json)
+
+# Extract sheet ID from JSON response
+SHEET_ID=$(echo "$SHEET_ID" | python3 -c "import sys, json; print(json.load(sys.stdin).get('id', ''))")
+
+echo "Created sheet with ID: $SHEET_ID"
+```
+
+**Step 2: Add header row**
+```bash
+# Add all required columns in the first row
+gog sheets update "$SHEET_ID" "Sheet1!A1:I1" \
+  --values-json '["Day","Subject","Module","Daily Learning Objectives","Daily Assessment","YouTube Link","YouTube Title","Tools Used","Fallback Search Query"]'
+
+echo "Headers added"
+```
+
+**Step 3: Populate with all lessons**
+```bash
+# Read curriculum structure from checkpoint
+# Convert each lesson to row format
+# Append all rows at once for efficiency
+
+# Build values array (one row per lesson)
+# Format: [Day, Subject, Module, Objectives, Assessment, URL, Title, Tools, Fallback]
+
+gog sheets append "$SHEET_ID" "Sheet1!A2:I" \
+  --values-json '[
+    ["1","Employment Readiness","Module 1: Resume","Learn resume basics","Create resume","https://youtube.com/watch?v=DEMO_RESUME_1","How to Write Resume","Computer","],
+    ["2","Employment Readiness","Module 2: Interview","Practice interview","Mock interview","https://youtube.com/watch?v=DEMO_INTERVIEW_1","Top 10 Questions","Computer","],
+    ["3","Employment Readiness","Module 3: LinkedIn","Create profile","Set up LinkedIn","https://youtube.com/watch?v=DEMO_LINKEDIN_1","LinkedIn Profile Guide","Computer","],
+    ...
+  ]' \
+  --insert INSERT_ROWS
+
+echo "Added $lesson_count lessons"
+```
+
+**Data format:**
+- Column A: Day (1, 2, 3, ...)
+- Column B: Subject (from requirements)
+- Column C: Module (lesson name)
+- Column D: Daily Learning Objectives
+- Column E: Daily Assessment
+- Column F: YouTube Link (validated or search query fallback)
+- Column G: YouTube Title
+- Column H: Tools Used
+- Column I: Fallback Search Query (if no valid video)
+
+**Validation:**
+- One row per lesson (starting from row 2, row 1 is headers)
+- Include fallback search queries for lessons without valid videos
+- **CRITICAL:** Ensure NO blank YouTube Links AND blank Fallback Search Query - each lesson must have at least one
+
+**Step 4: Share with public view access (CRITICAL)**
+```bash
+# ⚠️ IMPORTANT: Always share before returning link to user
+gog drive share "$SHEET_ID" --to anyone --role reader
+
+echo "Sheet shared with public view access"
+```
+
+**Step 5: Construct and save public URL**
+```bash
+# Build the public viewable URL
+PUBLIC_URL="https://docs.google.com/spreadsheets/d/${SHEET_ID}"
+
+# Save to checkpoint
+echo "$PUBLIC_URL" > "$SESSION_DIR/final-sheet-url.txt"
+
+echo "Sheet URL saved: $PUBLIC_URL"
+```
+
+#### Sheet Naming Convention
+
+Format: `Curriculum_{POD_NAME}_{YYYY-MM-DD}`
+
+Example: `Curriculum_MPS_Balaram_Street_2026-02-28`
+
+#### Folder Configuration
+
+**Designated Folder ID:** `1upJQu-IVmZRJQsNGmJNRzq9IwL67MVL9`
+
+Store this in `.env` file:
+```bash
+# In ~/.openclaw/workspace/skills/curriculum-designer/.env
+GOG_FOLDER_ID=1upJQu-IVmZRJQsNGmJNRzq9IwL67MVL9
+```
+
+**Checkpoint:** `~/.openclaw/workspace/curriculum-designer-checkpoints/<timestamp>-<session-id>/final-sheet-url.txt`
+
+#### Return to User
+
+After completing all steps:
+1. Read the sheet URL from checkpoint
+2. Return the public viewable link to user
+3. Confirm sheet is shared and viewable
+
+**Success message:**
+```
+✅ Curriculum Complete! 🎉
+
+Google Sheet Link: https://docs.google.com/spreadsheets/d/${SHEET_ID}
+
+The sheet is shared with public view access - anyone with the link can view it.
+```
 
 ---
 
-## Important Guidelines
+## Video Selection Criteria
 
-### Video Selection Criteria
 - ✅ **5-10 minutes max** - keeps engagement high
 - ✅ **Clear explanations** - no jargon-heavy content
 - ✅ **Hindi or bilingual** - accessible for all students
 - ✅ **Recent content** - prefer 2023+ videos
 - ❌ **Long lectures** - students lose interest
 - ❌ **Advanced content** - match to target audience level
+
+---
+
+## Important Guidelines
+
+### ⚠️ CRITICAL: Sharing Permissions
+- **ALWAYS share sheet** with `--to anyone --role reader` before returning link
+- **NEVER return a restricted link** - user cannot view it
+- Command: `gog drive share <SHEET_ID> --to anyone --role reader`
+
+### ⚠️ CRITICAL: No Blank URLs
+- Every topic MUST have either:
+  - A valid YouTube URL, OR
+  - A search query fallback
+- Never leave both fields blank
 
 ### Assessment Design
 - **Formative** (daily): Quick quizzes, practice exercises, short tasks
@@ -188,7 +661,83 @@ Based on requirements, create a structured curriculum with:
 
 ⚠️ **API keys are stored locally in `.env` file - NEVER commit this file to git!**
 
-The `.env` file is excluded from version control.
+---
+
+## Future Improvements
+
+1. **Resume from specific stage** - Ability to jump to any stage, not just first failed one
+
+---
+
+## Automatic Checkpoint Cleanup (Cron Job)
+
+### Purpose
+Delete checkpoint directories older than 7 days to prevent disk space bloat while keeping recent sessions for debugging.
+
+### Cron Job Configuration
+
+#### Option 1: Add to User Crontab
+```bash
+# Edit crontab
+crontab -e
+
+# Add this line (runs daily at midnight)
+0 0 * * * find ~/.openclaw/workspace/curriculum-designer-checkpoints/ -type d -mtime +7 -exec rm -rf {} \;
+```
+
+#### Option 2: Using OpenClaw Cron
+```bash
+# Create cron job via OpenClaw
+openclaw cron create \
+  --name "checkpoint-cleanup" \
+  --schedule "0 0 * * *" \
+  --command "find ~/.openclaw/workspace/curriculum-designer-checkpoints/ -type d -mtime +7 -exec rm -rf {} \;" \
+  --description "Delete curriculum-designer checkpoints older than 7 days"
+```
+
+#### Cron Schedule Options
+
+| Schedule | Crontab Format | Description |
+|-----------|----------------|--------------|
+| Daily at midnight | `0 0 * * *` | Every day at 00:00 |
+| Weekly on Sunday | `0 0 * * 0` | Every Sunday at 00:00 |
+| Every 6 hours | `0 */6 * * *` | Every 6 hours (may be too frequent) |
+| Twice daily | `0 0,12 * * *` | At 00:00 and 12:00 |
+
+### Verification
+
+After setting up cron, verify it's working:
+
+```bash
+# List cron jobs (crontab)
+crontab -l
+
+# List cron jobs (OpenClaw)
+openclaw cron list
+```
+
+### Manual Cleanup Test
+
+Test the cleanup command manually before setting up cron:
+
+```bash
+# Dry run (see what would be deleted)
+find ~/.openclaw/workspace/curriculum-designer-checkpoints/ -type d -mtime +7 -ls
+
+# Actual cleanup
+find ~/.openclaw/workspace/curriculum-designer-checkpoints/ -type d -mtime +7 -exec rm -rf {} \;
+
+# Verify
+ls ~/.openclaw/workspace/curriculum-designer-checkpoints/
+```
+
+### Notes
+
+- **`-mtime +7`**: Files/directories modified more than 7 days ago
+- **`-type d`**: Only directories (sessions), not individual files
+- **`-exec rm -rf {} \;`**: Remove directory and all contents
+- Checkpoints are preserved after completion for review, then auto-cleaned after 7 days
+- Adjust `+7` to a different value if you want different retention period (+3, +14, +30)
 
 ---
 
@@ -198,3 +747,5 @@ The `.env` file is excluded from version control.
 - Save curriculum sheets in the designated folder
 - Share viewable link at the end
 - Consider teacher training needs if curriculum requires new tools
+- Checkpoints are preserved after completion for review
+- Every topic in final curriculum must have valid video OR search query fallback
